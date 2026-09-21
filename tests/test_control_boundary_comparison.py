@@ -159,3 +159,45 @@ def test_current_router_restart_preserves_business_operation():
         assert restored.status == OperationStatus.PENDING_APPROVAL
     finally:
         db_path.unlink(missing_ok=True)
+
+
+def test_router_replayed_approval_cannot_execute_second_effect():
+    provider = MockPaymentProvider()
+    router = ControlledRouter(InMemoryStore(), provider)
+    op = asyncio.run(
+        router.submit(
+            Request(
+                request_id="compare-replay",
+                raw_text="Please refund order #1002 for $800.",
+            )
+        )
+    )
+    assert op.status == OperationStatus.PENDING_APPROVAL
+
+    completed = router.approve(op.operation_id, True)
+    assert completed.status == OperationStatus.COMPLETED
+    assert provider.refund_calls == 1
+
+    with pytest.raises(ValueError, match="not pending approval"):
+        router.approve(op.operation_id, True)
+
+    assert provider.refund_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_sdk_replayed_approval_state_cannot_be_resumed_twice():
+    effects = []
+    agent = _scripted_refund_agent(effects)
+    paused = await Runner.run(agent, "Refund order 1002 for $800.")
+    state = paused.to_state()
+    interruption = paused.interruptions[0]
+
+    state.approve(interruption)
+    resumed = await Runner.run(agent, state)
+    assert effects == [("1002", 800)]
+    assert resumed.final_output == "Refund completed."
+
+    with pytest.raises(Exception):
+        await Runner.run(agent, state)
+
+    assert effects == [("1002", 800)]

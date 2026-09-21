@@ -18,6 +18,13 @@ class InMemoryStore:
             op = self.operations.get(oid)
             return op.model_copy(deep=True) if op else None
 
+    def get_operation_by_request_id(self, request_id: str):
+        with self._lock:
+            for op in self.operations.values():
+                if op.request_id == request_id:
+                    return op.model_copy(deep=True)
+            return None
+
     def claim_approval(self, oid: str, approve: bool):
         with self._lock:
             op = self.operations.get(oid)

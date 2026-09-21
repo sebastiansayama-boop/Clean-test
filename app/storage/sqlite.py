@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from ..models import Evidence, Operation
+from ..models import Evidence, Operation, OperationStatus
 
 
 class SQLiteStore:
@@ -10,7 +10,7 @@ class SQLiteStore:
         self._init()
 
     def _connect(self):
-        return sqlite3.connect(self.path)
+        return sqlite3.connect(self.path, timeout=5)
 
     def _init(self):
         db = self._connect()
@@ -48,6 +48,35 @@ class SQLiteStore:
         finally:
             db.close()
         return Operation.model_validate_json(row[0]) if row else None
+
+    def claim_approval(self, oid, approve):
+        db = self._connect()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT payload FROM operations WHERE operation_id=?",
+                (oid,),
+            ).fetchone()
+            if not row:
+                db.rollback()
+                return None
+            op = Operation.model_validate_json(row[0])
+            if op.status != OperationStatus.PENDING_APPROVAL:
+                db.rollback()
+                return False
+            op.approval = "approved" if approve else "rejected"
+            op.status = OperationStatus.APPROVED if approve else OperationStatus.REJECTED
+            db.execute(
+                "UPDATE operations SET payload=? WHERE operation_id=?",
+                (op.model_dump_json(), oid),
+            )
+            db.commit()
+            return op
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
     def add_evidence(self, e):
         db = self._connect()

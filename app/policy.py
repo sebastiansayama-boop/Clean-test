@@ -1,10 +1,15 @@
 from .models import PolicyDecision
-AUTO_REFUND_LIMIT=100.0
 
-def check_refund_policy(*,amount:float,payment_status:str,refundable:bool)->PolicyDecision:
-    if amount<=0: return PolicyDecision(False,False,"Refund amount must be positive.")
-    if payment_status!="paid": return PolicyDecision(False,False,"Payment is not in a refundable paid state.")
-    if not refundable: return PolicyDecision(False,False,"Payment is not refundable.")
-    if amount>AUTO_REFUND_LIMIT:
-        return PolicyDecision(True,True,"Amount exceeds automatic approval limit.")
-    return PolicyDecision(True,False,"Refund is within automatic approval limit.")
+AUTO_REFUND_LIMIT = 100.0
+
+
+def check_refund_policy(*, amount: float, payment_status: str, refundable: bool) -> PolicyDecision:
+    if amount <= 0:
+        return PolicyDecision(allowed=False, requires_approval=False, reason="Refund amount must be positive.")
+    if payment_status != "paid":
+        return PolicyDecision(allowed=False, requires_approval=False, reason="Payment is not in a refundable paid state.")
+    if not refundable:
+        return PolicyDecision(allowed=False, requires_approval=False, reason="Payment is not refundable.")
+    if amount > AUTO_REFUND_LIMIT:
+        return PolicyDecision(allowed=True, requires_approval=True, reason="Amount exceeds automatic approval limit.")
+    return PolicyDecision(allowed=True, requires_approval=False, reason="Refund is within automatic approval limit.")

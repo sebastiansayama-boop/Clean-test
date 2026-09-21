@@ -245,9 +245,15 @@ def test_concurrent_approvals_are_single_use():
             pool.submit(router.approve, op.operation_id, True),
             pool.submit(router.approve, op.operation_id, True),
         ]
-        results = [future.result() for future in futures]
+        outcomes = []
+        for future in futures:
+            try:
+                outcomes.append(("ok", future.result()))
+            except ValueError as exc:
+                outcomes.append(("error", exc))
 
-    assert sum(result.status == OperationStatus.COMPLETED for result in results) == 1
+    assert [kind for kind, _ in outcomes].count("ok") == 1
+    assert [kind for kind, _ in outcomes].count("error") == 1
     assert provider.refund_calls == 1
 
 

@@ -329,3 +329,21 @@ def test_concurrent_approve_and_reject_have_one_authoritative_decision():
         assert provider.refund_calls == 1
     else:
         assert provider.refund_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_sdk_copied_run_states_do_not_provide_shared_approval_claim():
+    effects = []
+    agent = _scripted_refund_agent(effects)
+    paused = await Runner.run(agent, "Refund order 1002 for $800.")
+    assert len(paused.interruptions) == 1
+
+    state_a = paused.to_state()
+    state_b = paused.to_state()
+    state_a.approve(state_a._current_turn.interruptions[0] if hasattr(state_a._current_turn, "interruptions") else paused.interruptions[0])
+    state_b.approve(state_b._current_turn.interruptions[0] if hasattr(state_b._current_turn, "interruptions") else paused.interruptions[0])
+
+    await Runner.run(agent, state_a)
+    await Runner.run(agent, state_b)
+
+    assert effects == [("1002", 800), ("1002", 800)]

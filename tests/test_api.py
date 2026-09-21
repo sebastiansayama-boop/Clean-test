@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters.mock_payment import MockPaymentProvider
 from app.main import app
-from app.storage.sqlite import SQLiteStore
+from app.storage.memory import InMemoryStore
 from app.workflow import ControlledRouter
 
 
@@ -11,14 +11,14 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def isolated_router(tmp_path, monkeypatch):
+def isolated_router(monkeypatch):
     import app.main
 
     monkeypatch.setattr(
         app.main,
         "router",
         ControlledRouter(
-            store=SQLiteStore(tmp_path / "router.db"),
+            store=InMemoryStore(),
             provider=MockPaymentProvider(),
         ),
     )

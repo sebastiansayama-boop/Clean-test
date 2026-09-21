@@ -20,6 +20,7 @@ def home():
 </form>
 <pre id="result"></pre>
 <script>
+document.getElementById("request_id").value = "browser-" + Date.now();
 document.getElementById('request-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const result = document.getElementById('result');

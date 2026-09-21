@@ -62,3 +62,14 @@ async def test_timeout_becomes_unknown_and_reconciles():
     assert op.status == OperationStatus.UNKNOWN
     op = r.reconcile(op.operation_id)
     assert op.status == OperationStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_duplicate_request_id_returns_same_operation_without_second_effect():
+    r = make()
+    request = Request(request_id="r-idempotent", raw_text="I want to refund order #1001.")
+    first = await r.submit(request)
+    second = await r.submit(request)
+    assert second.operation_id == first.operation_id
+    assert second.status == OperationStatus.COMPLETED
+    assert r.provider.refund_calls == 1

@@ -340,8 +340,8 @@ async def test_sdk_copied_run_states_do_not_provide_shared_approval_claim():
 
     state_a = paused.to_state()
     state_b = paused.to_state()
-    state_a.approve(state_a._current_turn.interruptions[0] if hasattr(state_a._current_turn, "interruptions") else paused.interruptions[0])
-    state_b.approve(state_b._current_turn.interruptions[0] if hasattr(state_b._current_turn, "interruptions") else paused.interruptions[0])
+    state_a.approve(paused.interruptions[0])
+    state_b.approve(paused.interruptions[0])
 
     await Runner.run(agent, state_a)
     await Runner.run(agent, state_b)

@@ -95,7 +95,7 @@ def test_connection_error_becomes_unknown_provider_outcome(monkeypatch):
     def fail(**kwargs):
         raise FakeStripe.APIConnectionError("network failure")
 
-    fake.refunds.create = fail
+    fake.Refund.create = fail
 
     with pytest.raises(Exception) as exc:
         provider.refund("pi_test_123", 800.0, "Customer request", "op_test_123")

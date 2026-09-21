@@ -246,3 +246,46 @@ def test_concurrent_approvals_are_single_use():
 
     assert all(result.status == OperationStatus.COMPLETED for result in results)
     assert provider.refund_calls == 1
+
+
+def test_sqlite_concurrent_approvals_allow_only_one_claim():
+    from concurrent.futures import ThreadPoolExecutor
+    from pathlib import Path
+    import os
+
+    from app.storage.sqlite import SQLiteStore
+
+    db_path = Path(__file__).parent / f".sqlite-concurrent-approval-{os.getpid()}.db"
+    try:
+        provider = MockPaymentProvider()
+        first = ControlledRouter(SQLiteStore(str(db_path)), provider)
+        op = asyncio.run(
+            first.submit(
+                Request(
+                    request_id="compare-sqlite-concurrent",
+                    raw_text="Please refund order #1002 for $800.",
+                )
+            )
+        )
+        assert op.status == OperationStatus.PENDING_APPROVAL
+
+        second = ControlledRouter(SQLiteStore(str(db_path)), provider)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [
+                pool.submit(first.approve, op.operation_id, True),
+                pool.submit(second.approve, op.operation_id, True),
+            ]
+            outcomes = []
+            for future in futures:
+                try:
+                    outcomes.append(("ok", future.result()))
+                except ValueError as exc:
+                    outcomes.append(("error", exc))
+
+        assert [kind for kind, _ in outcomes].count("ok") == 1
+        assert [kind for kind, _ in outcomes].count("error") == 1
+        assert provider.refund_calls == 1
+        restored = first.store.get_operation(op.operation_id)
+        assert restored.status == OperationStatus.COMPLETED
+    finally:
+        db_path.unlink(missing_ok=True)

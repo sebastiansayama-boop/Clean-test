@@ -11,8 +11,8 @@ class FakeStripe:
 
     def __init__(self):
         self.api_key = None
-        self.payment_intents = SimpleNamespace(retrieve=self.retrieve_payment_intent)
-        self.refunds = SimpleNamespace(
+        self.PaymentIntent = SimpleNamespace(retrieve=self.retrieve_payment_intent)
+        self.Refund = SimpleNamespace(
             list=self.list_refunds,
             create=self.create_refund,
         )

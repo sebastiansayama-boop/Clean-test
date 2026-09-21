@@ -5,7 +5,7 @@ description = "Controlled AI Request to Action Router MVP"
 requires-python = ">=3.12"
 dependencies = ["fastapi>=0.116,<1","uvicorn[standard]>=0.35,<1","pydantic>=2.11,<3","openai-agents>=0.2,<1"]
 [project.optional-dependencies]
-dev = ["pytest>=8,<9","httpx>=0.28,<1"]
+dev = ["pytest>=8,<9","pytest-asyncio>=1,<2","httpx>=0.28,<1"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

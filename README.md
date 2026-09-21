@@ -31,6 +31,20 @@ The mock provider can simulate a timeout after an effect has occurred so the wor
 
 Open http://127.0.0.1:8000.
 
+The default launch uses the local mock payment provider and persists operations in `router.db`. No Stripe credentials are required for the first launch.
+
+### First launch acceptance
+
+Run the application, then verify the product flow in a browser:
+
+1. Submit `I want to refund order #1001.` → expect `COMPLETED`.
+2. Submit `Please refund order #1002 for $800.` → expect `PENDING_APPROVAL`.
+3. Open the approval page → `REJECT` → expect `REJECTED` and no provider effect.
+4. Submit the same large-refund scenario with a new Request ID → `APPROVE` → expect `COMPLETED`.
+5. Open the operation evidence endpoint to confirm request, analysis, policy, approval (when applicable), external result, and verification records.
+
+Each browser page generates a fresh demo Request ID. Do not reuse a Request ID when you intend to create a new operation; the application treats it as the idempotency key for request admission.
+
 Set OPENAI_API_KEY to enable the real agent path. Without a key, the demo API still exposes the deterministic workflow and mock-provider tests.
 
 ## Tests

@@ -1,9 +1,27 @@
+import pytest
 from fastapi.testclient import TestClient
 
+from app.adapters.mock_payment import MockPaymentProvider
 from app.main import app
+from app.storage.memory import InMemoryStore
+from app.workflow import ControlledRouter
 
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def isolated_router(monkeypatch):
+    import app.main
+
+    monkeypatch.setattr(
+        app.main,
+        "router",
+        ControlledRouter(
+            store=InMemoryStore(),
+            provider=MockPaymentProvider(),
+        ),
+    )
 
 
 def test_home_page():

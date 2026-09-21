@@ -30,12 +30,12 @@ class ControlledRouter:
         return self._execute(op,payment.payment_id,amount)
 
     def approve(self,oid,approve):
-        op=self.store.get_operation(oid)
-        if not op: raise KeyError(oid)
-        if op.status!=OperationStatus.PENDING_APPROVAL: raise ValueError("Operation is not pending approval.")
-        op.approval="approved" if approve else "rejected"; self._evidence(op,"APPROVAL","human",{"approve":approve})
+        claimed=self.store.claim_approval(oid,approve)
+        if claimed is None: raise KeyError(oid)
+        if claimed is False: raise ValueError("Operation is not pending approval.")
+        op=claimed
+        self._evidence(op,"APPROVAL","human",{"approve":approve})
         if not approve: return self._finish(op,OperationStatus.REJECTED,"Human approval rejected the external effect.")
-        op.status=OperationStatus.APPROVED; self._save(op)
         return self._execute(op,op.arguments["payment_id"],op.arguments["amount"])
 
     def reconcile(self,oid):

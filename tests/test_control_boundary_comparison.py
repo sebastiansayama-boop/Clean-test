@@ -135,7 +135,7 @@ async def test_router_timeout_becomes_unknown_but_sdk_tool_timeout_has_no_busine
 def test_current_router_restart_preserves_business_operation():
     from pathlib import Path
 
-    db_path = Path(__file__).parent / f".sqlite-sdk-compare-{__import__("os").getpid()}.db"
+    db_path = Path(__file__).parent / f".sqlite-sdk-compare-{__import__('os').getpid()}.db"
     try:
         first = ControlledRouter(
             __import__("app.storage.sqlite", fromlist=["SQLiteStore"]).SQLiteStore(str(db_path)),

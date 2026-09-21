@@ -21,7 +21,7 @@ class ControlledRouter:
         op.status=OperationStatus.VALIDATING; self._save(op)
         if not payment: return self._finish(op,OperationStatus.FAILED,"Order/payment not found.")
         amount=analysis.requested_amount or payment.amount
-        decision=check_refund_policy(amount=amount,payment_status=payment.status,refundable=payment.refundable)
+        decision=check_refund_policy(amount=amount,payment_amount=payment.amount,payment_status=payment.status,refundable=payment.refundable)
         op.authorization="allowed" if decision.allowed else "denied"; op.arguments={"amount":amount,"payment_id":payment.payment_id,"reason":"Customer request"}
         self._evidence(op,"POLICY_DECISION","policy",decision.model_dump()); self._save(op)
         if not decision.allowed: return self._finish(op,OperationStatus.FAILED,decision.reason)

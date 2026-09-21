@@ -49,6 +49,17 @@ class SQLiteStore:
             db.close()
         return Operation.model_validate_json(row[0]) if row else None
 
+    def get_operation_by_request_id(self, request_id):
+        db = self._connect()
+        try:
+            row = db.execute(
+                "SELECT payload FROM operations WHERE json_extract(payload, '$.request_id')=? LIMIT 1",
+                (request_id,),
+            ).fetchone()
+        finally:
+            db.close()
+        return Operation.model_validate_json(row[0]) if row else None
+
     def claim_approval(self, oid, approve):
         db = self._connect()
         try:

@@ -15,7 +15,7 @@ def home():
 <p>Submit a customer request. The router will analyze it, apply policy, execute safe actions, or pause for human approval.</p>
 <form id="request-form">
   <label>Request<br><textarea id="raw_text" rows="4" cols="60" required>I want to cancel order #1002 and get a refund of $800.</textarea></label><br><br>
-  <label>Request ID <input id="request_id" value="browser-demo-1" required></label>
+  <label>Request ID <input id="request_id" required></label>
   <button type="submit">SUBMIT REQUEST</button>
 </form>
 <pre id="result"></pre>

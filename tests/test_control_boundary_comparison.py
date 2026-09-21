@@ -339,8 +339,9 @@ def test_concurrent_approve_and_reject_have_one_authoritative_decision():
 @pytest.mark.asyncio
 async def test_sdk_copied_run_states_do_not_provide_shared_approval_claim():
     effects = []
-    agent = _scripted_refund_agent(effects)
-    paused = await Runner.run(agent, "Refund order 1002 for $800.")
+    agent_a = _scripted_refund_agent(effects)
+    agent_b = _scripted_refund_agent(effects)
+    paused = await Runner.run(agent_a, "Refund order 1002 for $800.")
     assert len(paused.interruptions) == 1
 
     state_a = paused.to_state()
@@ -348,7 +349,7 @@ async def test_sdk_copied_run_states_do_not_provide_shared_approval_claim():
     state_a.approve(paused.interruptions[0])
     state_b.approve(paused.interruptions[0])
 
-    await Runner.run(agent, state_a)
-    await Runner.run(agent, state_b)
+    await Runner.run(agent_a, state_a)
+    await Runner.run(agent_b, state_b)
 
     assert effects == [("1002", 800), ("1002", 800)]

@@ -21,19 +21,20 @@ def approval_page(operation_id:str):
     op=router.store.get_operation(operation_id)
     if not op: raise HTTPException(404,"Operation not found")
     if op.status.value!="PENDING_APPROVAL":
-        return HTMLResponse(f"<h1>Operation \{operation_id\}</h1><p>Status: \{op.status.value\}</p>")
+        return HTMLResponse("<h1>Operation "+operation_id+"</h1><p>Status: "+op.status.value+"</p>")
     amount=op.arguments.get("amount","unknown")
-    return f"""<!doctype html><title>Approval</title><h1>ACTION REQUIRES APPROVAL</h1>
-<p><b>Operation:</b> \{operation_id\}</p><p><b>Resource:</b> \{op.resource\}</p>
-<p><b>Action:</b> Refund</p><p><b>Amount:</b> $\{amount\}</p><p><b>Reason:</b> Customer request</p>
-<button onclick="decide(true)">APPROVE</button> <button onclick="decide(false)">REJECT</button>
-<pre id="result"></pre>
-<script>
-async function decide(approve) {{
- const r=await fetch("/operations/\{operation_id\}/approval",{{method:"POST",headers:{{"content-type":"application/json"}},body:JSON.stringify({{approve}})}});
- document.getElementById("result").textContent=await r.text();
-}}
-</script>"""
+    return HTMLResponse(
+        "<!doctype html><title>Approval</title><h1>ACTION REQUIRES APPROVAL</h1>"
+        "<p><b>Operation:</b> "+operation_id+"</p>"
+        "<p><b>Resource:</b> "+op.resource+"</p>"
+        "<p><b>Action:</b> Refund</p><p><b>Amount:</b> $"+str(amount)+"</p>"
+        "<p><b>Reason:</b> Customer request</p>"
+        "<button onclick=\"decide(true)\">APPROVE</button> "
+        "<button onclick=\"decide(false)\">REJECT</button><pre id=\"result\"></pre>"
+        "<script>async function decide(approve){const r=await fetch('/operations/"+operation_id+"/approval',"
+        "{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({approve:approve})});"
+        "document.getElementById('result').textContent=await r.text();}</script>"
+    )
 
 @app.post("/operations/{operation_id}/approval")
 def approve_operation(operation_id:str,decision:ApprovalDecision):

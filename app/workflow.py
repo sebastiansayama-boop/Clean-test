@@ -10,6 +10,9 @@ class ControlledRouter:
         self.store=store or SQLiteStore(); self.provider=provider or MockPaymentProvider()
 
     async def submit(self,request:Request):
+        existing=self.store.get_operation_by_request_id(request.request_id)
+        if existing is not None:
+            return existing
         analysis=await analyze_request(request.raw_text)
         op=Operation(operation_id="op_"+uuid4().hex[:12],request_id=request.request_id,
           action=analysis.requested_action,resource="order:"+(analysis.order_id or "unknown"),

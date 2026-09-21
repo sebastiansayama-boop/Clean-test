@@ -5,9 +5,6 @@ import pytest
 from app.adapters.stripe_payment import StripePaymentProvider
 
 
-pytestmark = pytest.mark.integration
-
-
 def test_real_stripe_testmode_refund():
     if os.getenv("RUN_STRIPE_TESTMODE") != "1":
         pytest.skip("Set RUN_STRIPE_TESTMODE=1 to run the real Stripe Test Mode smoke test.")

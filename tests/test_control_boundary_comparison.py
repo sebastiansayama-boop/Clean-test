@@ -213,14 +213,10 @@ class _ApprovalRaceStore(InMemoryStore):
     def arm_approval_race(self):
         self._armed = True
 
-    def disarm_approval_race(self):
-        self._armed = False
-
-    def get_operation(self, oid):
-        op = super().get_operation(oid)
-        if self._armed and op is not None and op.status == OperationStatus.PENDING_APPROVAL:
+    def claim_approval(self, oid, approve):
+        if self._armed:
             self.approval_reads.wait(timeout=5)
-        return op
+        return super().claim_approval(oid, approve)
 
 
 def test_concurrent_approvals_are_single_use():
@@ -331,7 +327,6 @@ def test_concurrent_approve_and_reject_have_one_authoritative_decision():
 
     assert [kind for kind, _ in outcomes].count("ok") == 1
     assert [kind for kind, _ in outcomes].count("error") == 1
-    store.disarm_approval_race()
     restored = store.get_operation(op.operation_id)
     assert restored.status in {OperationStatus.COMPLETED, OperationStatus.REJECTED}
     assert provider.refund_calls in {0, 1}

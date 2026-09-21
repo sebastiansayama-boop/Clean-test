@@ -201,3 +201,48 @@ async def test_sdk_replayed_approval_state_cannot_be_resumed_twice():
         await Runner.run(agent, state)
 
     assert effects == [("1002", 800)]
+
+
+class _ApprovalRaceStore(InMemoryStore):
+    def __init__(self):
+        super().__init__()
+        from threading import Barrier
+        self.approval_reads = Barrier(2)
+        self._armed = False
+
+    def arm_approval_race(self):
+        self._armed = True
+
+    def get_operation(self, oid):
+        op = super().get_operation(oid)
+        if self._armed and op is not None and op.status == OperationStatus.PENDING_APPROVAL:
+            self.approval_reads.wait(timeout=5)
+        return op
+
+
+def test_concurrent_approvals_are_single_use():
+    from concurrent.futures import ThreadPoolExecutor
+
+    provider = MockPaymentProvider()
+    store = _ApprovalRaceStore()
+    router = ControlledRouter(store, provider)
+    op = asyncio.run(
+        router.submit(
+            Request(
+                request_id="compare-concurrent-approval",
+                raw_text="Please refund order #1002 for $800.",
+            )
+        )
+    )
+    assert op.status == OperationStatus.PENDING_APPROVAL
+    store.arm_approval_race()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(router.approve, op.operation_id, True),
+            pool.submit(router.approve, op.operation_id, True),
+        ]
+        results = [future.result() for future in futures]
+
+    assert all(result.status == OperationStatus.COMPLETED for result in results)
+    assert provider.refund_calls == 1

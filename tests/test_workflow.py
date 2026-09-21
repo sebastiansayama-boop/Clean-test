@@ -26,6 +26,26 @@ async def test_large_refund_waits_for_approval():
 
 
 @pytest.mark.asyncio
+async def test_approval_executes_and_verifies():
+    r = make()
+    op = await r.submit(Request(request_id="r2-approve", raw_text="Please refund order #1002 for $800."))
+    op = r.approve(op.operation_id, True)
+    assert op.status == OperationStatus.COMPLETED
+    assert op.approval == "approved"
+    assert op.external_reference == "re_0001"
+    assert r.provider.refund_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_refund_above_payment_amount_is_denied_without_effect():
+    r = make()
+    op = await r.submit(Request(request_id="r-over", raw_text="Please refund order #1001 for $800."))
+    assert op.status == OperationStatus.FAILED
+    assert "exceeds the payment amount" in op.result["message"]
+    assert r.provider.refund_calls == 0
+
+
+@pytest.mark.asyncio
 async def test_rejection_has_no_external_effect():
     r = make()
     op = await r.submit(Request(request_id="r3", raw_text="Please refund order #1002 for $800."))

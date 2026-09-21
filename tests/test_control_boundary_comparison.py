@@ -117,7 +117,12 @@ async def test_router_timeout_becomes_unknown_but_sdk_tool_timeout_has_no_busine
                         call_id="timeout-1",
                     )
                 ]
-            )
+            ),
+            ModelStep(
+                output=[
+                    assistant_message("The refund attempt encountered an uncertain provider result.")
+                ]
+            ),
         ]
     )
     agent = Agent(
@@ -129,7 +134,7 @@ async def test_router_timeout_becomes_unknown_but_sdk_tool_timeout_has_no_busine
 
     result = await Runner.run(agent, "Refund order 1001 for $45.")
     assert effects == [("1001", 45)]
-    assert result.final_output is not None
+    assert result.final_output == "The refund attempt encountered an uncertain provider result."
 
 
 def test_current_router_restart_preserves_business_operation():

@@ -11,33 +11,36 @@ from app.storage.memory import InMemoryStore
 from app.workflow import ControlledRouter
 
 
-def _scripted_refund_agent(effects):
+def _scripted_refund_agent(effects, repeats=1):
     @function_tool(name_override="issue_refund", needs_approval=True)
     def issue_refund(order_id: str, amount: float) -> str:
         effects.append((order_id, amount))
         return "refund-created"
 
-    model = ScriptedModel(
-        [
-            ModelStep(
-                output=[
-                    function_call(
-                        "issue_refund",
-                        {"order_id": "1002", "amount": 800},
-                        call_id="refund-compare-1",
-                    )
-                ]
-            ),
-            ModelStep(output=[assistant_message("Refund completed.")]),
-        ]
-    )
+    steps = []
+    for index in range(repeats):
+        steps.extend(
+            [
+                ModelStep(
+                    output=[
+                        function_call(
+                            "issue_refund",
+                            {"order_id": "1002", "amount": 800},
+                            call_id=f"refund-compare-{index + 1}",
+                        )
+                    ]
+                ),
+                ModelStep(output=[assistant_message("Refund completed.")]),
+            ]
+        )
+
+    model = ScriptedModel(steps)
     return Agent(
         name="SDK comparison agent",
         instructions="Call issue_refund for refund requests.",
         model=model,
         tools=[issue_refund],
     )
-
 
 @pytest.mark.asyncio
 async def test_compare_current_router_and_sdk_approval_for_rejection():
@@ -339,9 +342,8 @@ def test_concurrent_approve_and_reject_have_one_authoritative_decision():
 @pytest.mark.asyncio
 async def test_sdk_copied_run_states_do_not_provide_shared_approval_claim():
     effects = []
-    agent_a = _scripted_refund_agent(effects)
-    agent_b = _scripted_refund_agent(effects)
-    paused = await Runner.run(agent_a, "Refund order 1002 for $800.")
+    agent = _scripted_refund_agent(effects, repeats=2)
+    paused = await Runner.run(agent, "Refund order 1002 for $800.")
     assert len(paused.interruptions) == 1
 
     state_a = paused.to_state()
@@ -349,7 +351,7 @@ async def test_sdk_copied_run_states_do_not_provide_shared_approval_claim():
     state_a.approve(paused.interruptions[0])
     state_b.approve(paused.interruptions[0])
 
-    await Runner.run(agent_a, state_a)
-    await Runner.run(agent_b, state_b)
+    await Runner.run(agent, state_a)
+    await Runner.run(agent, state_b)
 
     assert effects == [("1002", 800), ("1002", 800)]

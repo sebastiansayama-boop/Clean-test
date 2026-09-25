@@ -1,9 +1,16 @@
 import asyncio
+import os
 
 import pytest
 
 from lead_ops.llm import OpenAILeadAnalyzer
 from lead_ops.models import IncomingMessage, LeadClass
+
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="OPENAI_API_KEY is required for the real-provider integration test",
+)
 
 
 CONTROL_MESSAGES = [

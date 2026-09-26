@@ -35,7 +35,7 @@ class GeminiLeadAnalyzer:
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY is required")
 
-        self.model = model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+        self.model = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self.client = genai.Client(api_key=api_key)
 
     async def analyze(self, message: IncomingMessage) -> LeadAnalysis:

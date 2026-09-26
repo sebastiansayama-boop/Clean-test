@@ -162,7 +162,7 @@ async def login(request: Request):
     if not hmac.compare_digest(str(payload.get("password", "")), APP_PASSWORD):
         return JSONResponse({"error": "invalid_credentials"}, status_code=401)
     response = JSONResponse({"authenticated": True})
-    response.set_cookie("lead_ops_session", _session_token(), httponly=True, samesite="lax", secure=False)
+    response.set_cookie("lead_ops_session", _session_token(), httponly=True, samesite="lax", secure=True)
     return response
 
 

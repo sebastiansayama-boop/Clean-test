@@ -1,6 +1,9 @@
 name: Gemini Lead Ops integration
 
 on:
+  push:
+    branches:
+      - saas/lead-ops-v2
   workflow_dispatch:
 
 permissions:

@@ -23,12 +23,19 @@ if os.getenv("DATABASE_URL"):
 else:
     store = LeadStore(db_path=DB_PATH)
 
-if PROVIDER == "gemini":
-    analyzer = GeminiLeadAnalyzer()
-elif PROVIDER == "openai":
-    analyzer = OpenAILeadAnalyzer()
-else:
-    raise RuntimeError("LEAD_OPS_PROVIDER must be 'gemini' or 'openai'")
+analyzer = None
+
+def _get_analyzer():
+    global analyzer
+    if analyzer is not None:
+        return analyzer
+    if PROVIDER == "gemini":
+        analyzer = GeminiLeadAnalyzer()
+    elif PROVIDER == "openai":
+        analyzer = OpenAILeadAnalyzer()
+    else:
+        raise RuntimeError("LEAD_OPS_PROVIDER must be 'gemini' or 'openai'")
+    return analyzer
 
 rules = BusinessRules(
     minimum_value=float(os.getenv("LEAD_MINIMUM_VALUE", "0")),
@@ -162,7 +169,7 @@ async def login(request: Request):
 @app.post("/api/runs")
 async def create_run(message: IncomingMessage, request: Request):
     _require_auth(request)
-    result = await process_message_with_analyzer(message, rules, store, analyzer)
+    result = await process_message_with_analyzer(message, rules, store, _get_analyzer())
     return result.model_dump()
 
 

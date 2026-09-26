@@ -1,11 +1,21 @@
 [project]
-name = "controlled-ai-router"
-version = "0.1.0"
-description = "Controlled AI Request to Action Router MVP"
+name = "lead-ops-saas"
+version = "0.2.0"
+description = "AI lead operations SaaS vertical slice"
 requires-python = ">=3.12"
-dependencies = ["fastapi>=0.116,<1","uvicorn[standard]>=0.35,<1","pydantic>=2.11,<3","openai-agents>=0.2,<1","google-genai>=1.0,<2"]
+dependencies = [
+  "fastapi>=0.116,<1",
+  "uvicorn[standard]>=0.35,<1",
+  "pydantic>=2.11,<3",
+  "openai-agents>=0.2,<1",
+  "google-genai>=1.0,<2",
+  "psycopg[binary]>=3.2,<4",
+]
 [dependency-groups]
 dev = ["pytest>=8,<9","pytest-asyncio>=1,<2","httpx>=0.28,<1"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["lead_ops*"]

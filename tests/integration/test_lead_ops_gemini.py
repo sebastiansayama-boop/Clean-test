@@ -60,7 +60,7 @@ async def test_real_gemini_control_message(
         f"RESULT source_id={message.source_id} "
         f"classification={analysis.classification.value} "
         f"confidence={analysis.confidence:.3f} "
-        f"sender_email={analysis.sender_email!r} "
+        f"sender_email={analysis.email!r} "
         f"company={analysis.company!r} "
         f"request={analysis.request!r} "
         f"estimated_value={analysis.estimated_value!r} "
@@ -70,7 +70,7 @@ async def test_real_gemini_control_message(
 
     assert analysis.classification in set(LeadClass)
     assert 0 <= analysis.confidence <= 1
-    assert analysis.sender_email == message.sender
+    assert analysis.email == message.sender
     assert analysis.reason
 
     expected = LeadClass(expected_label)

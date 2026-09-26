@@ -5,7 +5,8 @@ import time
 import pytest
 
 from lead_ops.gemini import GeminiLeadAnalyzer
-from lead_ops.models import IncomingMessage, LeadClass
+from lead_ops.models import BusinessRules, IncomingMessage, LeadClass
+from lead_ops.service import LeadStore, process_message_with_analyzer
 
 
 pytestmark = pytest.mark.skipif(
@@ -78,6 +79,63 @@ async def test_real_gemini_control_message(
         f"Expected {expected.value}, got {analysis.classification.value}. "
         f"Reason: {analysis.reason}"
     )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize("expected_label,message", CONTROL_MESSAGES)
+async def test_real_gemini_full_action_and_persistence_path(
+    expected_label: str, message: IncomingMessage, tmp_path
+) -> None:
+    analyzer = GeminiLeadAnalyzer()
+    db_path = str(tmp_path / "lead_ops.sqlite")
+    store = LeadStore(db_path=db_path)
+
+    result = await process_message_with_analyzer(
+        message,
+        BusinessRules(),
+        store,
+        analyzer,
+    )
+
+    expected = LeadClass(expected_label)
+    assert result.analysis.classification == expected
+    assert result.evidence[0] == {"type": "INPUT", "source_id": message.source_id}
+    assert result.evidence[1]["type"] == "ANALYSIS"
+    assert result.evidence[2]["type"] == "RULE_DECISION"
+
+    if expected is LeadClass.LEAD:
+        assert result.status == "COMPLETED"
+        assert result.actions[0]["type"] == "CREATE_LEAD"
+        assert any(item["type"] == "PERSISTED_RESULT" for item in result.evidence)
+        assert len(store.leads) == 1
+    elif expected is LeadClass.UNCLEAR:
+        assert result.status == "PENDING_REVIEW"
+        assert result.actions == [{"type": "HUMAN_REVIEW", "status": "required"}]
+        assert result.evidence[-1] == {
+            "type": "ACTION_RESULT",
+            "action": "HUMAN_REVIEW",
+            "status": "required",
+        }
+        assert len(store.leads) == 0
+    else:
+        assert result.status == "COMPLETED"
+        assert result.actions == [{"type": "NO_ACTION", "status": "completed"}]
+        assert result.evidence[-1] == {
+            "type": "ACTION_RESULT",
+            "action": "NO_ACTION",
+            "status": "completed",
+        }
+        assert len(store.leads) == 0
+
+    reopened = LeadStore(db_path=db_path)
+    restored = reopened.get_run(result.run_id)
+    assert restored.model_dump() == result.model_dump()
+
+    if expected is LeadClass.LEAD:
+        assert reopened.leads == store.leads
+    else:
+        assert reopened.leads == []
 
 
 if __name__ == "__main__":

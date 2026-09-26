@@ -83,3 +83,11 @@ class PostgresLeadStore:
         if not row:
             raise KeyError(run_id)
         return RunResult.model_validate(row[0])
+
+    def list_runs(self, limit: int = 50) -> list[RunResult]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT data FROM runs ORDER BY created_at DESC, run_id DESC LIMIT %s",
+                (limit,),
+            ).fetchall()
+        return [RunResult.model_validate(row[0]) for row in rows]

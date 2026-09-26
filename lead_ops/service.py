@@ -93,6 +93,9 @@ class LeadStore:
     def get_run(self, run_id: str) -> RunResult:
         return self.runs[run_id]
 
+    def list_runs(self, limit: int = 50) -> list[RunResult]:
+        return list(self.runs.values())[-limit:][::-1]
+
 
 def analyze_message(message: IncomingMessage) -> LeadAnalysis:
     """Deterministic fallback used for local logic tests and offline operation."""
